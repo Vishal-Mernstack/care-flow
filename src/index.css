@@ -68,11 +68,11 @@
 
     /* Sidebar - Deep Navy for Professional Look */
     --sidebar-background: 220 35% 12%;
-    --sidebar-foreground: 210 25% 90%;
+    --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 210 90% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 30% 18%;
-    --sidebar-accent-foreground: 210 25% 98%;
+    --sidebar-accent: 220 30% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 25% 20%;
     --sidebar-ring: 210 90% 55%;
 

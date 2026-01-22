@@ -24,19 +24,19 @@ export const StatCard = ({
 }: StatCardProps) => {
   return (
     <div
-      className="stat-card animate-fade-in"
+      className="stat-card animate-fade-in group"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="font-display text-3xl font-bold tracking-tight">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</p>
+          <p className="font-display text-4xl font-bold tracking-tight text-foreground">
             {value}
           </p>
           {change && (
             <p
               className={cn(
-                "text-sm font-medium",
+                "text-sm font-semibold",
                 changeType === "positive" && "text-success",
                 changeType === "negative" && "text-destructive",
                 changeType === "neutral" && "text-muted-foreground"
@@ -46,8 +46,8 @@ export const StatCard = ({
             </p>
           )}
         </div>
-        <div className={cn("stat-card-icon", iconBgColor)}>
-          <Icon className={cn("h-6 w-6", iconColor)} />
+        <div className={cn("stat-card-icon transition-transform group-hover:scale-110", iconBgColor)}>
+          <Icon className={cn("h-7 w-7", iconColor)} />
         </div>
       </div>
     </div>

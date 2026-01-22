@@ -26,49 +26,51 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border bg-background/95 px-8 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
       {/* Left Section */}
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="lg:hidden h-12 w-12"
           onClick={onMenuClick}
+          aria-label="Open menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </Button>
         
-        <div className="search-input hidden w-80 md:flex">
-          <Search className="h-4 w-4 text-muted-foreground" />
+        <div className="search-input hidden w-96 md:flex">
+          <Search className="h-5 w-5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search patients, doctors, appointments..."
-            className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground/60"
+            className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
+            aria-label="Search"
           />
-          <kbd className="hidden rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
+          <kbd className="hidden rounded-lg bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground sm:inline">
             ⌘K
           </kbd>
         </div>
       </div>
 
       {/* Right Section */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="relative h-12 w-12 rounded-xl" aria-label="Notifications">
+              <Bell className="h-6 w-6" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-destructive-foreground animate-pulse">
                   {unreadCount}
                 </span>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              Notifications
-              <Badge variant="secondary" className="text-xs">
+          <DropdownMenuContent align="end" className="w-96 bg-popover border border-border shadow-xl">
+            <DropdownMenuLabel className="flex items-center justify-between px-4 py-3">
+              <span className="text-base font-semibold">Notifications</span>
+              <Badge variant="secondary" className="text-xs font-semibold">
                 {unreadCount} new
               </Badge>
             </DropdownMenuLabel>
@@ -76,12 +78,12 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             {notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
-                className="flex flex-col items-start gap-1 p-3"
+                className="flex flex-col items-start gap-1.5 p-4 cursor-pointer"
               >
                 <div className="flex w-full items-center justify-between">
-                  <span className="font-medium">{notification.title}</span>
+                  <span className="font-semibold text-foreground">{notification.title}</span>
                   {notification.unread && (
-                    <span className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-primary" />
                   )}
                 </div>
                 <span className="text-sm text-muted-foreground">
@@ -93,7 +95,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="justify-center text-primary">
+            <DropdownMenuItem className="justify-center text-primary font-semibold py-3">
               View all notifications
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -102,27 +104,32 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <Avatar className="h-8 w-8">
+            <Button variant="ghost" className="flex items-center gap-3 px-3 h-14 rounded-xl">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                 <AvatarImage src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=100&h=100&fit=crop" />
-                <AvatarFallback>AD</AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">AD</AvatarFallback>
               </Avatar>
               <div className="hidden text-left md:block">
-                <p className="text-sm font-medium">Dr. Admin</p>
+                <p className="text-sm font-semibold text-foreground">Dr. Admin</p>
                 <p className="text-xs text-muted-foreground">Administrator</p>
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-64 bg-popover border border-border shadow-xl">
+            <DropdownMenuLabel className="px-4 py-3">
+              <p className="font-semibold">My Account</p>
+              <p className="text-sm text-muted-foreground font-normal">admin@medicare.com</p>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              Profile
+            <DropdownMenuItem className="px-4 py-3 cursor-pointer">
+              <User className="mr-3 h-5 w-5" />
+              <span className="font-medium">Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem className="px-4 py-3 cursor-pointer">
+              <span className="font-medium">Settings</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="px-4 py-3 text-destructive cursor-pointer font-medium">
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

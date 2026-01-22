@@ -63,6 +63,16 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        emergency: {
+          DEFAULT: "hsl(var(--emergency))",
+          foreground: "hsl(var(--emergency-foreground))",
+        },
+        cardiology: "hsl(var(--cardiology))",
+        neurology: "hsl(var(--neurology))",
+        pediatrics: "hsl(var(--pediatrics))",
+        orthopedics: "hsl(var(--orthopedics))",
+        oncology: "hsl(var(--oncology))",
+        general: "hsl(var(--general))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

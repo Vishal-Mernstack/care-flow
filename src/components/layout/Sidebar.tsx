@@ -86,16 +86,16 @@ export const Sidebar = () => {
                 to={item.path}
                 className={({ isActive }) =>
                   cn(
-                    "sidebar-link touch-target",
+                    "sidebar-link touch-target text-sidebar-foreground",
                     isActive && "active",
                     collapsed && "justify-center px-0"
                   )
                 }
                 title={collapsed ? item.label : undefined}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <item.icon className="h-5 w-5 flex-shrink-0 text-white" />
                 {!collapsed && (
-                  <span className="animate-fade-in font-medium">{item.label}</span>
+                  <span className="animate-fade-in font-medium text-white">{item.label}</span>
                 )}
               </NavLink>
             </li>
@@ -115,16 +115,16 @@ export const Sidebar = () => {
                 to={item.path}
                 className={({ isActive }) =>
                   cn(
-                    "sidebar-link touch-target",
+                    "sidebar-link touch-target text-sidebar-foreground",
                     isActive && "active",
                     collapsed && "justify-center px-0"
                   )
                 }
                 title={collapsed ? item.label : undefined}
               >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <item.icon className="h-5 w-5 flex-shrink-0 text-white" />
                 {!collapsed && (
-                  <span className="animate-fade-in font-medium">{item.label}</span>
+                  <span className="animate-fade-in font-medium text-white">{item.label}</span>
                 )}
               </NavLink>
             </li>

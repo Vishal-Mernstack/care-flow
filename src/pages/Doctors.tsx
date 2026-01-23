@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Star, Calendar, Clock, MoreHorizontal } from "lucide-react";
+import { Search, Star, Calendar, Clock, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,8 +11,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AddDoctorDialog } from "@/components/doctors/AddDoctorDialog";
+import { EditDoctorDialog, Doctor } from "@/components/doctors/EditDoctorDialog";
+import { ViewDoctorDialog } from "@/components/doctors/ViewDoctorDialog";
+import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
-const doctors = [
+const initialDoctors: Doctor[] = [
   {
     id: "D-001",
     name: "Dr. Sarah Williams",
@@ -113,12 +135,85 @@ const getAvailabilityStyles = (type: string) => {
 };
 
 const Doctors = () => {
+  const [doctors, setDoctors] = useState<Doctor[]>(initialDoctors);
   const [searchQuery, setSearchQuery] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState("all");
+  
+  // Dialog states
+  const [viewDoctor, setViewDoctor] = useState<Doctor | null>(null);
+  const [editDoctor, setEditDoctor] = useState<Doctor | null>(null);
+  const [deleteDoctor, setDeleteDoctor] = useState<Doctor | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bookingDoctor, setBookingDoctor] = useState<Doctor | null>(null);
 
-  const filteredDoctors = doctors.filter((doctor) =>
-    doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doctor.specialization.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getAvailabilityType = (availability: string) => {
+    switch (availability) {
+      case "Available": return "success";
+      case "In Surgery":
+      case "In Consultation": return "warning";
+      case "On Leave": return "danger";
+      default: return "default";
+    }
+  };
+
+  const handleAddDoctor = (newDoctor: any) => {
+    const doctor: Doctor = {
+      ...newDoctor,
+      availabilityType: getAvailabilityType(newDoctor.availability),
+      rating: 4.5,
+      patients: 0,
+      nextSlot: "Tomorrow, 9:00 AM",
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newDoctor.name}`,
+    };
+    setDoctors([doctor, ...doctors]);
+  };
+
+  const handleEditDoctor = (updatedDoctor: Doctor) => {
+    setDoctors(doctors.map(d => d.id === updatedDoctor.id ? updatedDoctor : d));
+  };
+
+  const handleDeleteDoctor = () => {
+    if (deleteDoctor) {
+      setDoctors(doctors.filter(d => d.id !== deleteDoctor.id));
+      toast({
+        title: "Doctor Removed",
+        description: `${deleteDoctor.name} has been removed from the staff.`,
+        variant: "destructive",
+      });
+      setDeleteDoctor(null);
+    }
+  };
+
+  const handleViewToEdit = () => {
+    setViewDialogOpen(false);
+    if (viewDoctor) {
+      setEditDoctor(viewDoctor);
+      setEditDialogOpen(true);
+    }
+  };
+
+  const handleBookAppointment = (appointment: any) => {
+    toast({
+      title: "Appointment Booked",
+      description: `Appointment scheduled with ${appointment.doctor}`,
+    });
+    setBookingDoctor(null);
+  };
+
+  const filteredDoctors = doctors.filter((doctor) => {
+    const matchesSearch = doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctor.specialization.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDepartment = departmentFilter === "all" || 
+      doctor.department.toLowerCase() === departmentFilter.toLowerCase();
+    const matchesAvailability = availabilityFilter === "all" ||
+      (availabilityFilter === "available" && doctor.availability === "Available") ||
+      (availabilityFilter === "busy" && (doctor.availability === "In Surgery" || doctor.availability === "In Consultation")) ||
+      (availabilityFilter === "leave" && doctor.availability === "On Leave");
+    return matchesSearch && matchesDepartment && matchesAvailability;
+  });
 
   return (
     <div className="space-y-6">
@@ -127,13 +222,10 @@ const Doctors = () => {
         <div className="animate-fade-in">
           <h1 className="font-display text-2xl font-bold md:text-3xl">Doctors</h1>
           <p className="mt-1 text-muted-foreground">
-            View and manage medical staff directory
+            View and manage medical staff directory ({doctors.length} doctors)
           </p>
         </div>
-        <Button className="w-full gap-2 sm:w-auto">
-          <Plus className="h-4 w-4" />
-          Add Doctor
-        </Button>
+        <AddDoctorDialog onAdd={handleAddDoctor} />
       </div>
 
       {/* Filters */}
@@ -148,7 +240,7 @@ const Doctors = () => {
           />
         </div>
         <div className="flex gap-2">
-          <Select defaultValue="all">
+          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Department" />
             </SelectTrigger>
@@ -159,9 +251,10 @@ const Doctors = () => {
               <SelectItem value="orthopedics">Orthopedics</SelectItem>
               <SelectItem value="oncology">Oncology</SelectItem>
               <SelectItem value="pediatrics">Pediatrics</SelectItem>
+              <SelectItem value="surgery">Surgery</SelectItem>
             </SelectContent>
           </Select>
-          <Select defaultValue="all">
+          <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Availability" />
             </SelectTrigger>
@@ -176,69 +269,164 @@ const Doctors = () => {
       </div>
 
       {/* Doctors Grid */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filteredDoctors.map((doctor, index) => (
-          <div
-            key={doctor.id}
-            className="animate-fade-in group rounded-xl bg-card p-5 shadow-card transition-all hover:shadow-card-hover"
-            style={{ animationDelay: `${150 + index * 50}ms` }}
-          >
-            <div className="flex items-start gap-4">
-              <Avatar className="h-16 w-16 ring-2 ring-primary/10">
-                <AvatarImage src={doctor.avatar} />
-                <AvatarFallback>
-                  {doctor.name.split(" ").slice(1).map((n) => n[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold truncate">{doctor.name}</h3>
-                    <p className="text-sm text-primary">{doctor.specialization}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{doctor.education}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1 text-warning">
-                <Star className="h-4 w-4 fill-warning" />
-                <span className="font-medium">{doctor.rating}</span>
-              </div>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-muted-foreground">{doctor.experience}</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-muted-foreground">{doctor.patients} patients</span>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-3">
-              <div className="flex items-center gap-2">
-                <Badge className={getAvailabilityStyles(doctor.availabilityType)}>
-                  {doctor.availability}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" />
-                <span>{doctor.nextSlot}</span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1 gap-1.5">
-                <Calendar className="h-3.5 w-3.5" />
-                Book Appointment
-              </Button>
-              <Button size="sm" className="flex-1">
-                View Profile
-              </Button>
-            </div>
+      {filteredDoctors.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl bg-card p-12 text-center shadow-card">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+            <Search className="h-8 w-8 text-muted-foreground" />
           </div>
-        ))}
-      </div>
+          <h3 className="mt-4 text-lg font-semibold">No doctors found</h3>
+          <p className="mt-1 text-muted-foreground">
+            Try adjusting your search or filter criteria
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredDoctors.map((doctor, index) => (
+            <div
+              key={doctor.id}
+              className="animate-fade-in group rounded-xl bg-card p-5 shadow-card transition-all hover:shadow-card-hover"
+              style={{ animationDelay: `${150 + index * 50}ms` }}
+            >
+              <div className="flex items-start gap-4">
+                <Avatar className="h-16 w-16 ring-2 ring-primary/10">
+                  <AvatarImage src={doctor.avatar} />
+                  <AvatarFallback>
+                    {doctor.name.split(" ").slice(1).map((n) => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold truncate">{doctor.name}</h3>
+                      <p className="text-sm text-primary">{doctor.specialization}</p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setViewDoctor(doctor);
+                          setViewDialogOpen(true);
+                        }}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setEditDoctor(doctor);
+                          setEditDialogOpen(true);
+                        }}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => {
+                            setDeleteDoctor(doctor);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Remove
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{doctor.education}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1 text-warning">
+                  <Star className="h-4 w-4 fill-warning" />
+                  <span className="font-medium">{doctor.rating}</span>
+                </div>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground">{doctor.experience}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground">{doctor.patients} patients</span>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                <div className="flex items-center gap-2">
+                  <Badge className={getAvailabilityStyles(doctor.availabilityType)}>
+                    {doctor.availability}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>{doctor.nextSlot}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <AddAppointmentDialog 
+                  onAdd={handleBookAppointment}
+                  triggerButton={
+                    <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Book Appointment
+                    </Button>
+                  }
+                />
+                <Button 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => {
+                    setViewDoctor(doctor);
+                    setViewDialogOpen(true);
+                  }}
+                >
+                  View Profile
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Dialogs */}
+      <ViewDoctorDialog
+        doctor={viewDoctor}
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        onEdit={handleViewToEdit}
+        onBookAppointment={() => {
+          setViewDialogOpen(false);
+          setBookingDoctor(viewDoctor);
+        }}
+      />
+      
+      <EditDoctorDialog
+        doctor={editDoctor}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleEditDoctor}
+      />
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Doctor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove <strong>{deleteDoctor?.name}</strong> from the staff? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteDoctor}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove Doctor
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

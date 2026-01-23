@@ -1,13 +1,44 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Clock, User, Video, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Video, MapPin, Trash2, Edit, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { AddAppointmentDialog } from "@/components/appointments/AddAppointmentDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
 const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const appointments = [
+interface Appointment {
+  id: number;
+  patient: string;
+  avatar: string;
+  doctor: string;
+  type: string;
+  time: string;
+  duration: number;
+  status: string;
+  isOnline: boolean;
+  day: number;
+}
+
+const initialAppointments: Appointment[] = [
   {
     id: 1,
     patient: "Sarah Johnson",
@@ -70,7 +101,7 @@ const appointments = [
   },
 ];
 
-const upcomingAppointments = [
+const initialUpcomingAppointments = [
   {
     id: 1,
     patient: "Anna Thompson",
@@ -101,11 +132,61 @@ const upcomingAppointments = [
 ];
 
 const Appointments = () => {
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [upcomingAppointments, setUpcomingAppointments] = useState(initialUpcomingAppointments);
   const [selectedDate, setSelectedDate] = useState(15);
-  const currentMonth = "January 2024";
+  const [currentMonth, setCurrentMonth] = useState("January 2024");
+  const [deleteAppointment, setDeleteAppointment] = useState<Appointment | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const todayAppointments = appointments.filter((a) => a.day === selectedDate);
+
+  const completedCount = appointments.filter(a => a.status === "confirmed").length;
+  const pendingCount = appointments.filter(a => a.status === "pending").length;
+
+  const handleAddAppointment = (newAppointment: any) => {
+    const appointment: Appointment = {
+      id: Date.now(),
+      patient: newAppointment.patientName,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newAppointment.patientName}`,
+      doctor: newAppointment.doctor,
+      type: newAppointment.type,
+      time: newAppointment.time,
+      duration: newAppointment.duration,
+      status: "pending",
+      isOnline: newAppointment.isOnline,
+      day: new Date(newAppointment.date).getDate(),
+    };
+    setAppointments([...appointments, appointment]);
+  };
+
+  const handleConfirmAppointment = (id: number) => {
+    setAppointments(appointments.map(a => 
+      a.id === id ? { ...a, status: "confirmed" } : a
+    ));
+    toast({
+      title: "Appointment Confirmed",
+      description: "The appointment has been confirmed.",
+    });
+  };
+
+  const handleCancelAppointment = (appointment: Appointment) => {
+    setDeleteAppointment(appointment);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteAppointment) {
+      setAppointments(appointments.filter(a => a.id !== deleteAppointment.id));
+      toast({
+        title: "Appointment Cancelled",
+        description: `Appointment with ${deleteAppointment.patient} has been cancelled.`,
+        variant: "destructive",
+      });
+      setDeleteAppointment(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -114,13 +195,10 @@ const Appointments = () => {
         <div className="animate-fade-in">
           <h1 className="font-display text-2xl font-bold md:text-3xl">Appointments</h1>
           <p className="mt-1 text-muted-foreground">
-            Manage and schedule patient appointments
+            Manage and schedule patient appointments ({appointments.length} total)
           </p>
         </div>
-        <Button className="w-full gap-2 sm:w-auto">
-          <Plus className="h-4 w-4" />
-          New Appointment
-        </Button>
+        <AddAppointmentDialog onAdd={handleAddAppointment} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -160,7 +238,8 @@ const Appointments = () => {
               ))}
               
               {days.map((day) => {
-                const hasAppointments = appointments.some((a) => a.day === day);
+                const dayAppointments = appointments.filter((a) => a.day === day);
+                const hasAppointments = dayAppointments.length > 0;
                 const isSelected = day === selectedDate;
                 const isToday = day === 15;
 
@@ -181,6 +260,14 @@ const Appointments = () => {
                     {hasAppointments && isSelected && (
                       <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary-foreground" />
                     )}
+                    {dayAppointments.length > 1 && (
+                      <span className={cn(
+                        "absolute top-1 right-1 text-[10px] font-bold",
+                        isSelected ? "text-primary-foreground" : "text-primary"
+                      )}>
+                        {dayAppointments.length}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -189,9 +276,14 @@ const Appointments = () => {
 
           {/* Selected Day Appointments */}
           <div className="mt-6 rounded-xl bg-card p-6 shadow-card">
-            <h3 className="mb-4 font-display text-lg font-semibold">
-              Appointments for January {selectedDate}
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-lg font-semibold">
+                Appointments for January {selectedDate}
+              </h3>
+              <Badge variant="outline">
+                {todayAppointments.length} scheduled
+              </Badge>
+            </div>
             
             {todayAppointments.length > 0 ? (
               <div className="space-y-3">
@@ -226,15 +318,40 @@ const Appointments = () => {
                       </p>
                     </div>
                     
-                    <Badge
-                      variant={appointment.status === "confirmed" ? "default" : "secondary"}
-                      className={cn(
-                        appointment.status === "confirmed" && "bg-success/10 text-success border-0",
-                        appointment.status === "pending" && "bg-warning/10 text-warning border-0"
-                      )}
-                    >
-                      {appointment.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={appointment.status === "confirmed" ? "default" : "secondary"}
+                        className={cn(
+                          appointment.status === "confirmed" && "bg-success/10 text-success border-0",
+                          appointment.status === "pending" && "bg-warning/10 text-warning border-0"
+                        )}
+                      >
+                        {appointment.status}
+                      </Badge>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {appointment.status === "pending" && (
+                            <DropdownMenuItem onClick={() => handleConfirmAppointment(appointment.id)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Confirm
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleCancelAppointment(appointment)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Cancel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -244,9 +361,14 @@ const Appointments = () => {
                   <Clock className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="mt-4 text-muted-foreground">No appointments scheduled</p>
-                <Button variant="outline" className="mt-2">
-                  Schedule New
-                </Button>
+                <AddAppointmentDialog 
+                  onAdd={handleAddAppointment}
+                  triggerButton={
+                    <Button variant="outline" className="mt-2">
+                      Schedule New
+                    </Button>
+                  }
+                />
               </div>
             )}
           </div>
@@ -312,16 +434,38 @@ const Appointments = () => {
           {/* Quick Stats */}
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-success/10 p-4 text-center">
-              <p className="text-2xl font-bold text-success">24</p>
-              <p className="text-xs text-success/80">Completed Today</p>
+              <p className="text-2xl font-bold text-success">{completedCount}</p>
+              <p className="text-xs text-success/80">Confirmed</p>
             </div>
             <div className="rounded-xl bg-warning/10 p-4 text-center">
-              <p className="text-2xl font-bold text-warning">8</p>
+              <p className="text-2xl font-bold text-warning">{pendingCount}</p>
               <p className="text-xs text-warning/80">Pending</p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel the appointment with <strong>{deleteAppointment?.patient}</strong>? 
+              They will be notified of the cancellation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Appointment</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Cancel Appointment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

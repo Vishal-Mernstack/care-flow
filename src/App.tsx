@@ -10,6 +10,11 @@ import Doctors from "./pages/Doctors";
 import Appointments from "./pages/Appointments";
 import Departments from "./pages/Departments";
 import Emergency from "./pages/Emergency";
+import Pharmacy from "./pages/Pharmacy";
+import Laboratory from "./pages/Laboratory";
+import Reports from "./pages/Reports";
+import Billing from "./pages/Billing";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,14 +74,11 @@ const App = () => (
               </MainLayout>
             }
           />
-          {/* Placeholder routes for other pages */}
           <Route
             path="/pharmacy"
             element={
               <MainLayout>
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Pharmacy module coming soon...</p>
-                </div>
+                <Pharmacy />
               </MainLayout>
             }
           />
@@ -84,9 +86,7 @@ const App = () => (
             path="/laboratory"
             element={
               <MainLayout>
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Laboratory module coming soon...</p>
-                </div>
+                <Laboratory />
               </MainLayout>
             }
           />
@@ -94,9 +94,7 @@ const App = () => (
             path="/reports"
             element={
               <MainLayout>
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Reports module coming soon...</p>
-                </div>
+                <Reports />
               </MainLayout>
             }
           />
@@ -104,9 +102,7 @@ const App = () => (
             path="/billing"
             element={
               <MainLayout>
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Billing module coming soon...</p>
-                </div>
+                <Billing />
               </MainLayout>
             }
           />
@@ -114,9 +110,7 @@ const App = () => (
             path="/settings"
             element={
               <MainLayout>
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Settings coming soon...</p>
-                </div>
+                <Settings />
               </MainLayout>
             }
           />

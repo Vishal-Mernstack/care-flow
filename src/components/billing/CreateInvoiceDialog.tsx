@@ -84,7 +84,10 @@ export const CreateInvoiceDialog = ({ open, onOpenChange, onSubmit }: CreateInvo
 
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     onSubmit({
-      ...data,
+      patientName: data.patientName,
+      patientId: data.patientId,
+      date: data.date,
+      dueDate: data.dueDate,
       items,
       subtotal,
       tax,

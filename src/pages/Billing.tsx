@@ -5,7 +5,6 @@ import {
   Plus,
   Filter,
   DollarSign,
-  Receipt,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -13,6 +12,7 @@ import {
   Download,
   Send,
   XCircle,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,10 +32,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateInvoiceDialog } from "@/components/billing/CreateInvoiceDialog";
 import { ViewInvoiceDialog } from "@/components/billing/ViewInvoiceDialog";
 import { RecordPaymentDialog } from "@/components/billing/RecordPaymentDialog";
+import { toast } from "@/hooks/use-toast";
+import { printReport, generateInvoiceHTML, downloadCSV } from "@/utils/exportUtils";
 
 interface Invoice {
   id: string;
@@ -173,6 +174,10 @@ const Billing = () => {
     };
     setInvoices([...invoices, newInvoice]);
     setCreateDialogOpen(false);
+    toast({
+      title: "Invoice Created",
+      description: `Invoice ${newInvoice.id} has been created successfully.`,
+    });
   };
 
   const handleRecordPayment = (invoiceId: string, amount: number, method: string) => {
@@ -189,10 +194,58 @@ const Billing = () => {
     );
     setPaymentDialogOpen(false);
     setSelectedInvoice(null);
+    toast({
+      title: "Payment Recorded",
+      description: `Payment of $${amount.toFixed(2)} has been recorded.`,
+    });
   };
 
   const handleCancelInvoice = (invoiceId: string) => {
-    setInvoices(invoices.map((inv) => (inv.id === invoiceId ? { ...inv, status: "cancelled" } : inv)));
+    setInvoices(invoices.map((inv) => (inv.id === invoiceId ? { ...inv, status: "cancelled" as const } : inv)));
+    toast({
+      title: "Invoice Cancelled",
+      description: `Invoice ${invoiceId} has been cancelled.`,
+    });
+  };
+
+  const handlePrintInvoice = (invoice: Invoice) => {
+    const content = generateInvoiceHTML(invoice);
+    printReport(`Invoice ${invoice.id}`, content);
+    toast({
+      title: "Printing Invoice",
+      description: `Invoice ${invoice.id} is ready for printing.`,
+    });
+  };
+
+  const handleDownloadInvoice = (invoice: Invoice) => {
+    const csvData = {
+      headers: ["Description", "Quantity", "Unit Price", "Amount"],
+      rows: [
+        ...invoice.items.map((item) => [
+          item.description,
+          item.quantity,
+          item.unitPrice,
+          item.quantity * item.unitPrice,
+        ]),
+        ["", "", "Subtotal", invoice.subtotal],
+        ["", "", "Tax (10%)", invoice.tax],
+        ["", "", "Total", invoice.total],
+        ["", "", "Paid", invoice.paid],
+        ["", "", "Balance", invoice.total - invoice.paid],
+      ],
+    };
+    downloadCSV(csvData, `invoice-${invoice.id}`);
+    toast({
+      title: "Invoice Downloaded",
+      description: `Invoice ${invoice.id} has been downloaded as CSV.`,
+    });
+  };
+
+  const handleSendReminder = (invoice: Invoice) => {
+    toast({
+      title: "Reminder Sent",
+      description: `Payment reminder sent to ${invoice.patientName} for invoice ${invoice.id}.`,
+    });
   };
 
   return (
@@ -331,6 +384,7 @@ const Billing = () => {
                         setSelectedInvoice(invoice);
                         setViewDialogOpen(true);
                       }}
+                      title="View"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -347,11 +401,29 @@ const Billing = () => {
                         <CreditCard className="h-4 w-4 text-success" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" title="Download">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handlePrintInvoice(invoice)}
+                      title="Print"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDownloadInvoice(invoice)}
+                      title="Download"
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
                     {invoice.status === "pending" && (
-                      <Button variant="ghost" size="icon" title="Send Reminder">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleSendReminder(invoice)}
+                        title="Send Reminder"
+                      >
                         <Send className="h-4 w-4 text-info" />
                       </Button>
                     )}

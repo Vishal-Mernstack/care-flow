@@ -9,7 +9,6 @@ import {
   TrendingUp,
   PieChart,
   BarChart3,
-  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +31,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer,
   LineChart,
   Line,
   PieChart as RechartsPieChart,
@@ -42,6 +40,9 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { toast } from "@/hooks/use-toast";
+import { downloadCSV } from "@/utils/exportUtils";
+import { GenerateReportDialog } from "@/components/reports/GenerateReportDialog";
 
 // Mock data for charts
 const patientStats = [
@@ -135,7 +136,32 @@ const chartConfig = {
 
 const Reports = () => {
   const [dateRange, setDateRange] = useState("last-6-months");
-  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<typeof reportTypes[0] | null>(null);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  const handleExportAll = () => {
+    const allData = {
+      headers: ["Month", "Admissions", "Discharges", "Outpatients", "Revenue", "Expenses"],
+      rows: patientStats.map((ps, i) => [
+        ps.month,
+        ps.admissions,
+        ps.discharges,
+        ps.outpatients,
+        revenueData[i]?.revenue || 0,
+        revenueData[i]?.expenses || 0,
+      ]),
+    };
+    downloadCSV(allData, `hospital-overview-${new Date().toISOString().split("T")[0]}`);
+    toast({
+      title: "Export Complete",
+      description: "Hospital overview data has been exported to CSV.",
+    });
+  };
+
+  const handleGenerateReport = (report: typeof reportTypes[0]) => {
+    setSelectedReport(report);
+    setReportDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -158,9 +184,9 @@ const Reports = () => {
               <SelectItem value="last-year">Last Year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleExportAll}>
             <Download className="h-4 w-4" />
-            Export
+            Export All
           </Button>
         </div>
       </div>
@@ -366,13 +392,13 @@ const Reports = () => {
 
       {/* Report Types */}
       <div className="animate-fade-in rounded-xl bg-card p-6 shadow-card">
-        <h3 className="mb-4 font-display text-lg font-semibold">Available Reports</h3>
+        <h3 className="mb-4 font-display text-lg font-semibold">Generate Reports</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {reportTypes.map((report) => (
             <div
               key={report.id}
               className="group cursor-pointer rounded-xl border p-4 transition-all hover:border-primary hover:shadow-md"
-              onClick={() => setSelectedReport(report.id)}
+              onClick={() => handleGenerateReport(report)}
             >
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
@@ -398,6 +424,13 @@ const Reports = () => {
           ))}
         </div>
       </div>
+
+      {/* Generate Report Dialog */}
+      <GenerateReportDialog
+        open={reportDialogOpen}
+        onOpenChange={setReportDialogOpen}
+        reportType={selectedReport}
+      />
     </div>
   );
 };

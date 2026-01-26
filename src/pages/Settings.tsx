@@ -115,6 +115,20 @@ const Settings = () => {
   });
   const [isSystemSaving, setIsSystemSaving] = useState(false);
 
+  // Currency helper function
+  const getCurrencyLabel = (currency: string) => {
+    const labels: Record<string, string> = {
+      usd: "💵 USD ($)",
+      eur: "💶 EUR (€)",
+      gbp: "💷 GBP (£)",
+      inr: "🇮🇳 INR (₹)",
+      jpy: "🇯🇵 JPY (¥)",
+      cad: "🇨🇦 CAD (C$)",
+      aud: "🇦🇺 AUD (A$)",
+      pkr: "🇵🇰 PKR (Rs)",
+    };
+    return labels[currency] || currency.toUpperCase();
+  };
   // Calculate password strength
   useEffect(() => {
     const password = security.newPassword;
@@ -697,15 +711,30 @@ const Settings = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Currency</Label>
-                  <Select value={systemSettings.currency} onValueChange={(v) => setSystemSettings({ ...systemSettings, currency: v })}>
+                  <Select 
+                    value={systemSettings.currency} 
+                    onValueChange={(v) => {
+                      setSystemSettings({ ...systemSettings, currency: v });
+                      toast({
+                        title: "Currency Updated",
+                        description: `Currency has been changed to ${getCurrencyLabel(v)}.`,
+                      });
+                    }}
+                  >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select currency">
+                        {getCurrencyLabel(systemSettings.currency)}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="usd">$ USD</SelectItem>
-                      <SelectItem value="eur">€ EUR</SelectItem>
-                      <SelectItem value="gbp">£ GBP</SelectItem>
-                      <SelectItem value="inr">₹ INR</SelectItem>
+                    <SelectContent className="bg-popover border shadow-lg z-50">
+                      <SelectItem value="usd">💵 USD - US Dollar ($)</SelectItem>
+                      <SelectItem value="eur">💶 EUR - Euro (€)</SelectItem>
+                      <SelectItem value="gbp">💷 GBP - British Pound (£)</SelectItem>
+                      <SelectItem value="inr">🇮🇳 INR - Indian Rupee (₹)</SelectItem>
+                      <SelectItem value="jpy">🇯🇵 JPY - Japanese Yen (¥)</SelectItem>
+                      <SelectItem value="cad">🇨🇦 CAD - Canadian Dollar (C$)</SelectItem>
+                      <SelectItem value="aud">🇦🇺 AUD - Australian Dollar (A$)</SelectItem>
+                      <SelectItem value="pkr">🇵🇰 PKR - Pakistani Rupee (Rs)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

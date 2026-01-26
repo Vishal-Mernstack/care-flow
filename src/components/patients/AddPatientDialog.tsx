@@ -49,10 +49,17 @@ type PatientFormData = z.infer<typeof patientSchema>;
 
 interface AddPatientDialogProps {
   onAdd: (patient: PatientFormData & { id: string }) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  triggerButton?: React.ReactNode;
 }
 
-export function AddPatientDialog({ onAdd }: AddPatientDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddPatientDialog({ onAdd, open: controlledOpen, onOpenChange, triggerButton }: AddPatientDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = isControlled ? (onOpenChange || (() => {})) : setUncontrolledOpen;
   
   const form = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -86,12 +93,16 @@ export function AddPatientDialog({ onAdd }: AddPatientDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="w-full gap-2 sm:w-auto">
-          <Plus className="h-4 w-4" />
-          Add New Patient
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {triggerButton || (
+            <Button className="w-full gap-2 sm:w-auto">
+              <Plus className="h-4 w-4" />
+              Add New Patient
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

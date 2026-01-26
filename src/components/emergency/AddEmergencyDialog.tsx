@@ -49,10 +49,16 @@ type EmergencyFormData = z.infer<typeof emergencySchema>;
 
 interface AddEmergencyDialogProps {
   onAdd: (patient: EmergencyFormData & { id: number }) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddEmergencyDialog({ onAdd }: AddEmergencyDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddEmergencyDialog({ onAdd, open: controlledOpen, onOpenChange }: AddEmergencyDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = isControlled ? (onOpenChange || (() => {})) : setUncontrolledOpen;
   
   const form = useForm<EmergencyFormData>({
     resolver: zodResolver(emergencySchema),
@@ -87,12 +93,14 @@ export function AddEmergencyDialog({ onAdd }: AddEmergencyDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2 bg-destructive hover:bg-destructive/90">
-          <Plus className="h-4 w-4" />
-          Emergency Admission
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button className="gap-2 bg-destructive hover:bg-destructive/90">
+            <Plus className="h-4 w-4" />
+            Emergency Admission
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

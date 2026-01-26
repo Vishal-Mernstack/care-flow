@@ -49,10 +49,16 @@ type AppointmentFormData = z.infer<typeof appointmentSchema>;
 interface AddAppointmentDialogProps {
   onAdd: (appointment: AppointmentFormData & { id: number; status: string }) => void;
   triggerButton?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddAppointmentDialog({ onAdd, triggerButton }: AddAppointmentDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddAppointmentDialog({ onAdd, triggerButton, open: controlledOpen, onOpenChange }: AddAppointmentDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = isControlled ? (onOpenChange || (() => {})) : setUncontrolledOpen;
   
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
@@ -85,14 +91,16 @@ export function AddAppointmentDialog({ onAdd, triggerButton }: AddAppointmentDia
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {triggerButton || (
-          <Button className="w-full gap-2 sm:w-auto">
-            <Plus className="h-4 w-4" />
-            New Appointment
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {triggerButton || (
+            <Button className="w-full gap-2 sm:w-auto">
+              <Plus className="h-4 w-4" />
+              New Appointment
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

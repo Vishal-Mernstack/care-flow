@@ -9,10 +9,25 @@ import {
   Upload,
   Eye,
   EyeOff,
-  Check,
   Download,
   Trash2,
   RefreshCw,
+  FileText,
+  FileJson,
+  Printer,
+  Moon,
+  Sun,
+  Monitor,
+  Globe,
+  Calendar as CalendarIcon,
+  Clock,
+  DollarSign,
+  HardDrive,
+  AlertTriangle,
+  CheckCircle,
+  LogOut,
+  Smartphone,
+  Laptop,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -40,8 +56,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
-import { downloadCSV } from "@/utils/exportUtils";
+import { 
+  downloadCSV, 
+  downloadJSON, 
+  printReport, 
+  downloadHTMLReport,
+  generateSettingsExportHTML 
+} from "@/utils/exportUtils";
 
 const Settings = () => {
   // Profile state
@@ -85,9 +114,9 @@ const Settings = () => {
   const [isSecuritySaving, setIsSecuritySaving] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [sessions, setSessions] = useState([
-    { id: 1, device: "Chrome on Windows", location: "New York, USA", lastActive: "Active now", current: true },
-    { id: 2, device: "Safari on iPhone", location: "New York, USA", lastActive: "2 hours ago", current: false },
-    { id: 3, device: "Firefox on Mac", location: "Boston, USA", lastActive: "1 day ago", current: false },
+    { id: 1, device: "Chrome on Windows", location: "New York, USA", lastActive: "Active now", current: true, icon: "laptop" },
+    { id: 2, device: "Safari on iPhone", location: "New York, USA", lastActive: "2 hours ago", current: false, icon: "phone" },
+    { id: 3, device: "Firefox on Mac", location: "Boston, USA", lastActive: "1 day ago", current: false, icon: "laptop" },
   ]);
 
   // Hospital state
@@ -115,20 +144,78 @@ const Settings = () => {
   });
   const [isSystemSaving, setIsSystemSaving] = useState(false);
 
-  // Currency helper function
-  const getCurrencyLabel = (currency: string) => {
-    const labels: Record<string, string> = {
-      usd: "💵 USD ($)",
-      eur: "💶 EUR (€)",
-      gbp: "💷 GBP (£)",
-      inr: "🇮🇳 INR (₹)",
-      jpy: "🇯🇵 JPY (¥)",
-      cad: "🇨🇦 CAD (C$)",
-      aud: "🇦🇺 AUD (A$)",
-      pkr: "🇵🇰 PKR (Rs)",
-    };
-    return labels[currency] || currency.toUpperCase();
+  // Theme labels and icons
+  const themeOptions = [
+    { value: "light", label: "Light", icon: Sun, description: "Bright and clear" },
+    { value: "dark", label: "Dark", icon: Moon, description: "Easy on the eyes" },
+    { value: "system", label: "System", icon: Monitor, description: "Match device settings" },
+  ];
+
+  // Language options
+  const languageOptions = [
+    { value: "en", label: "English", flag: "🇺🇸" },
+    { value: "es", label: "Español", flag: "🇪🇸" },
+    { value: "fr", label: "Français", flag: "🇫🇷" },
+    { value: "de", label: "Deutsch", flag: "🇩🇪" },
+    { value: "zh", label: "中文", flag: "🇨🇳" },
+    { value: "ar", label: "العربية", flag: "🇸🇦" },
+    { value: "hi", label: "हिंदी", flag: "🇮🇳" },
+    { value: "ur", label: "اردو", flag: "🇵🇰" },
+  ];
+
+  // Date format options
+  const dateFormatOptions = [
+    { value: "mdy", label: "MM/DD/YYYY", example: "01/26/2026" },
+    { value: "dmy", label: "DD/MM/YYYY", example: "26/01/2026" },
+    { value: "ymd", label: "YYYY-MM-DD", example: "2026-01-26" },
+    { value: "long", label: "Long Format", example: "January 26, 2026" },
+  ];
+
+  // Timezone options
+  const timezoneOptions = [
+    { value: "est", label: "Eastern Time (EST)", offset: "UTC-5" },
+    { value: "cst", label: "Central Time (CST)", offset: "UTC-6" },
+    { value: "mst", label: "Mountain Time (MST)", offset: "UTC-7" },
+    { value: "pst", label: "Pacific Time (PST)", offset: "UTC-8" },
+    { value: "utc", label: "UTC", offset: "UTC+0" },
+    { value: "gmt", label: "GMT (London)", offset: "UTC+0" },
+    { value: "cet", label: "Central European (CET)", offset: "UTC+1" },
+    { value: "ist", label: "India Standard (IST)", offset: "UTC+5:30" },
+    { value: "jst", label: "Japan Standard (JST)", offset: "UTC+9" },
+    { value: "pkt", label: "Pakistan Time (PKT)", offset: "UTC+5" },
+  ];
+
+  // Currency options
+  const currencyOptions = [
+    { value: "usd", label: "US Dollar", symbol: "$", flag: "🇺🇸" },
+    { value: "eur", label: "Euro", symbol: "€", flag: "🇪🇺" },
+    { value: "gbp", label: "British Pound", symbol: "£", flag: "🇬🇧" },
+    { value: "inr", label: "Indian Rupee", symbol: "₹", flag: "🇮🇳" },
+    { value: "jpy", label: "Japanese Yen", symbol: "¥", flag: "🇯🇵" },
+    { value: "cad", label: "Canadian Dollar", symbol: "C$", flag: "🇨🇦" },
+    { value: "aud", label: "Australian Dollar", symbol: "A$", flag: "🇦🇺" },
+    { value: "pkr", label: "Pakistani Rupee", symbol: "Rs", flag: "🇵🇰" },
+    { value: "aed", label: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪" },
+    { value: "sar", label: "Saudi Riyal", symbol: "﷼", flag: "🇸🇦" },
+  ];
+
+  // Get current formatted date and time based on settings
+  const getFormattedDate = () => {
+    const now = new Date();
+    const format = dateFormatOptions.find(f => f.value === systemSettings.dateFormat);
+    return format?.example || now.toLocaleDateString();
   };
+
+  const getFormattedTime = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getCurrencySymbol = () => {
+    const currency = currencyOptions.find(c => c.value === systemSettings.currency);
+    return currency?.symbol || "$";
+  };
+
   // Calculate password strength
   useEffect(() => {
     const password = security.newPassword;
@@ -139,6 +226,14 @@ const Settings = () => {
     if (password.match(/[^a-zA-Z\d]/)) strength += 25;
     setPasswordStrength(strength);
   }, [security.newPassword]);
+
+  const getPasswordStrengthLabel = () => {
+    if (passwordStrength === 0) return { label: "Enter password", color: "bg-muted" };
+    if (passwordStrength <= 25) return { label: "Weak", color: "bg-destructive" };
+    if (passwordStrength <= 50) return { label: "Fair", color: "bg-warning" };
+    if (passwordStrength <= 75) return { label: "Good", color: "bg-info" };
+    return { label: "Strong", color: "bg-success" };
+  };
 
   // Save handlers
   const handleSaveProfile = () => {
@@ -164,6 +259,14 @@ const Settings = () => {
   };
 
   const handleUpdatePassword = () => {
+    if (!security.currentPassword) {
+      toast({
+        title: "Current Password Required",
+        description: "Please enter your current password.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (security.newPassword !== security.confirmPassword) {
       toast({
         title: "Password Mismatch",
@@ -209,6 +312,14 @@ const Settings = () => {
     });
   };
 
+  const handleRevokeAllSessions = () => {
+    setSessions(sessions.filter((s) => s.current));
+    toast({
+      title: "All Sessions Revoked",
+      description: "All other sessions have been logged out.",
+    });
+  };
+
   const handleSaveHospital = () => {
     setIsHospitalSaving(true);
     setTimeout(() => {
@@ -231,7 +342,24 @@ const Settings = () => {
     }, 800);
   };
 
-  const handleExportData = () => {
+  const handleThemeChange = (theme: string) => {
+    setSystemSettings({ ...systemSettings, theme });
+    // Apply theme to document
+    document.documentElement.classList.remove('light', 'dark');
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.classList.add(systemTheme);
+    } else {
+      document.documentElement.classList.add(theme);
+    }
+    toast({
+      title: "Theme Changed",
+      description: `Theme has been set to ${theme}.`,
+    });
+  };
+
+  // Export handlers
+  const handleExportCSV = () => {
     const exportData = {
       headers: ["Category", "Setting", "Value"],
       rows: [
@@ -239,34 +367,135 @@ const Settings = () => {
         ["Profile", "Email", profile.email],
         ["Profile", "Phone", profile.phone],
         ["Profile", "Role", profile.role],
+        ["Profile", "Department", profile.department],
+        ["Profile", "Employee ID", profile.employeeId],
         ["Hospital", "Name", hospital.name],
         ["Hospital", "Address", hospital.address],
         ["Hospital", "Phone", hospital.phone],
+        ["Hospital", "Email", hospital.email],
+        ["Hospital", "Website", hospital.website],
+        ["Hospital", "Tax ID", hospital.taxId],
+        ["Hospital", "License", hospital.license],
         ["System", "Theme", systemSettings.theme],
         ["System", "Language", systemSettings.language],
+        ["System", "Date Format", systemSettings.dateFormat],
         ["System", "Timezone", systemSettings.timeZone],
+        ["System", "Currency", systemSettings.currency],
+        ["System", "Auto Backup", systemSettings.autoBackup ? "Enabled" : "Disabled"],
+        ...Object.entries(notifications).map(([key, value]) => [
+          "Notifications",
+          key.replace(/([A-Z])/g, ' $1').trim(),
+          value ? "Enabled" : "Disabled"
+        ]),
       ],
+      title: "Settings Export",
     };
-    downloadCSV(exportData, `settings-export-${new Date().toISOString().split("T")[0]}`);
+    downloadCSV(exportData, `medicare-settings-${new Date().toISOString().split("T")[0]}`);
     toast({
-      title: "Data Exported",
-      description: "Settings data has been exported to CSV.",
+      title: "CSV Downloaded",
+      description: "Settings data has been exported to CSV format.",
+    });
+  };
+
+  const handleExportJSON = () => {
+    const exportData = {
+      headers: ["Category", "Key", "Value"],
+      rows: [
+        ["Profile", "name", profile.name],
+        ["Profile", "email", profile.email],
+        ["Profile", "phone", profile.phone],
+        ["Profile", "role", profile.role],
+        ["Profile", "department", profile.department],
+        ["System", "theme", systemSettings.theme],
+        ["System", "language", systemSettings.language],
+        ["System", "currency", systemSettings.currency],
+      ],
+      title: "MediCare Pro Settings",
+    };
+    downloadJSON(exportData, `medicare-settings-${new Date().toISOString().split("T")[0]}`);
+    toast({
+      title: "JSON Downloaded",
+      description: "Settings data has been exported to JSON format.",
+    });
+  };
+
+  const handleExportPDF = () => {
+    const content = generateSettingsExportHTML({
+      profile,
+      hospital,
+      system: systemSettings,
+      notifications,
+    });
+    printReport("Settings Configuration Report", content, "Complete system settings and user preferences for MediCare Pro Hospital Management System");
+    toast({
+      title: "Print Dialog Opened",
+      description: "Use your browser's print dialog to save as PDF.",
+    });
+  };
+
+  const handleDownloadHTML = () => {
+    const content = generateSettingsExportHTML({
+      profile,
+      hospital,
+      system: systemSettings,
+      notifications,
+    });
+    downloadHTMLReport(
+      "Settings Configuration Report",
+      content,
+      `medicare-settings-${new Date().toISOString().split("T")[0]}`,
+      "Complete system settings and user preferences"
+    );
+    toast({
+      title: "HTML Report Downloaded",
+      description: "Professional HTML report has been downloaded.",
     });
   };
 
   const handleClearCache = () => {
+    // Simulate cache clearing
     toast({
       title: "Cache Cleared",
-      description: "Application cache has been cleared successfully.",
+      description: "Application cache has been cleared successfully. Performance may be improved.",
+    });
+  };
+
+  const handleDeleteAllData = () => {
+    toast({
+      title: "Data Deletion Initiated",
+      description: "In production, this would delete all data after additional confirmation.",
+      variant: "destructive",
     });
   };
 
   const handleAvatarUpload = () => {
-    // Simulate avatar upload
-    toast({
-      title: "Avatar Upload",
-      description: "In production, this would open a file picker to upload your avatar.",
-    });
+    // Create file input and trigger click
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+          toast({
+            title: "File Too Large",
+            description: "Please select an image under 2MB.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setAvatarUrl(e.target?.result as string);
+          toast({
+            title: "Avatar Updated",
+            description: "Your profile picture has been updated.",
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
   };
 
   return (
@@ -308,9 +537,11 @@ const Settings = () => {
             <div className="rounded-xl bg-card p-6 shadow-card">
               <h3 className="mb-4 font-display text-lg font-semibold">Profile Picture</h3>
               <div className="flex items-center gap-6">
-                <Avatar className="h-24 w-24">
+                <Avatar className="h-24 w-24 ring-4 ring-primary/10">
                   <AvatarImage src={avatarUrl} alt={profile.name} />
-                  <AvatarFallback className="text-2xl">{profile.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
+                  <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                    {profile.name.split(" ").map(n => n[0]).join("")}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="space-y-2">
                   <Button variant="outline" className="gap-2" onClick={handleAvatarUpload}>
@@ -353,11 +584,11 @@ const Settings = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="employeeId">Employee ID</Label>
-                  <Input id="employeeId" value={profile.employeeId} disabled />
+                  <Input id="employeeId" value={profile.employeeId} disabled className="bg-muted" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
-                  <Input id="role" value={profile.role} disabled />
+                  <Input id="role" value={profile.role} disabled className="bg-muted" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">Department</Label>
@@ -365,12 +596,14 @@ const Settings = () => {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover border shadow-lg z-50">
                       <SelectItem value="Administration">Administration</SelectItem>
                       <SelectItem value="Emergency">Emergency</SelectItem>
                       <SelectItem value="Cardiology">Cardiology</SelectItem>
                       <SelectItem value="Orthopedics">Orthopedics</SelectItem>
                       <SelectItem value="Pediatrics">Pediatrics</SelectItem>
+                      <SelectItem value="Neurology">Neurology</SelectItem>
+                      <SelectItem value="Oncology">Oncology</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -381,6 +614,7 @@ const Settings = () => {
                     value={profile.bio}
                     onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                     rows={3}
+                    className="resize-none"
                   />
                 </div>
               </div>
@@ -395,23 +629,41 @@ const Settings = () => {
         {/* Notification Settings */}
         <TabsContent value="notifications">
           <div className="animate-fade-in rounded-xl bg-card p-6 shadow-card">
-            <h3 className="mb-4 font-display text-lg font-semibold">Notification Preferences</h3>
-            <div className="space-y-4">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-lg font-semibold">Notification Preferences</h3>
+                <p className="text-sm text-muted-foreground">Choose what notifications you want to receive</p>
+              </div>
+              <Badge variant="outline" className="gap-1">
+                {Object.values(notifications).filter(v => v).length} of {Object.keys(notifications).length} enabled
+              </Badge>
+            </div>
+            <div className="space-y-3">
               {[
-                { key: "emailAlerts", label: "Email Alerts", desc: "Receive important updates via email", icon: "📧" },
-                { key: "pushNotifications", label: "Push Notifications", desc: "Browser push notifications", icon: "🔔" },
-                { key: "appointmentReminders", label: "Appointment Reminders", desc: "Reminders before appointments", icon: "📅" },
-                { key: "emergencyAlerts", label: "Emergency Alerts", desc: "Critical emergency notifications", icon: "🚨" },
-                { key: "reportReady", label: "Report Ready", desc: "When lab reports are ready", icon: "📊" },
-                { key: "lowStock", label: "Low Stock Alerts", desc: "Pharmacy inventory warnings", icon: "💊" },
-                { key: "patientUpdates", label: "Patient Updates", desc: "Status changes for assigned patients", icon: "👤" },
-                { key: "systemUpdates", label: "System Updates", desc: "Platform updates and maintenance", icon: "⚙️" },
+                { key: "emailAlerts", label: "Email Alerts", desc: "Receive important updates via email", icon: "📧", critical: false },
+                { key: "pushNotifications", label: "Push Notifications", desc: "Browser push notifications", icon: "🔔", critical: false },
+                { key: "appointmentReminders", label: "Appointment Reminders", desc: "Reminders 1 hour before appointments", icon: "📅", critical: false },
+                { key: "emergencyAlerts", label: "Emergency Alerts", desc: "Critical emergency notifications", icon: "🚨", critical: true },
+                { key: "reportReady", label: "Report Ready", desc: "When lab reports are completed", icon: "📊", critical: false },
+                { key: "lowStock", label: "Low Stock Alerts", desc: "Pharmacy inventory warnings", icon: "💊", critical: true },
+                { key: "patientUpdates", label: "Patient Updates", desc: "Status changes for assigned patients", icon: "👤", critical: false },
+                { key: "systemUpdates", label: "System Updates", desc: "Platform updates and maintenance", icon: "⚙️", critical: false },
               ].map((item) => (
-                <div key={item.key} className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50">
+                <div
+                  key={item.key}
+                  className={`flex items-center justify-between rounded-lg border p-4 transition-all hover:bg-muted/50 ${
+                    item.critical ? 'border-l-4 border-l-destructive' : ''
+                  }`}
+                >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{item.icon}</span>
                     <div>
-                      <p className="font-medium">{item.label}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{item.label}</p>
+                        {item.critical && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">CRITICAL</Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{item.desc}</p>
                     </div>
                   </div>
@@ -424,10 +676,37 @@ const Settings = () => {
                 </div>
               ))}
             </div>
-            <Button onClick={handleSaveNotifications} disabled={isNotificationsSaving} className="mt-6 gap-2">
-              {isNotificationsSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {isNotificationsSaving ? "Saving..." : "Save Preferences"}
-            </Button>
+            <div className="mt-6 flex gap-3">
+              <Button onClick={handleSaveNotifications} disabled={isNotificationsSaving} className="gap-2">
+                {isNotificationsSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isNotificationsSaving ? "Saving..." : "Save Preferences"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const allEnabled = Object.fromEntries(
+                    Object.keys(notifications).map(key => [key, true])
+                  );
+                  setNotifications(allEnabled as typeof notifications);
+                }}
+              >
+                Enable All
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const criticalOnly = Object.fromEntries(
+                    Object.entries(notifications).map(([key]) => [
+                      key,
+                      key === 'emergencyAlerts' || key === 'lowStock'
+                    ])
+                  );
+                  setNotifications(criticalOnly as typeof notifications);
+                }}
+              >
+                Critical Only
+              </Button>
+            </div>
           </div>
         </TabsContent>
 
@@ -446,6 +725,7 @@ const Settings = () => {
                       type={showPasswords.current ? "text" : "password"}
                       value={security.currentPassword}
                       onChange={(e) => setSecurity({ ...security, currentPassword: e.target.value })}
+                      placeholder="Enter current password"
                     />
                     <Button
                       variant="ghost"
@@ -465,6 +745,7 @@ const Settings = () => {
                       type={showPasswords.new ? "text" : "password"}
                       value={security.newPassword}
                       onChange={(e) => setSecurity({ ...security, newPassword: e.target.value })}
+                      placeholder="Enter new password"
                     />
                     <Button
                       variant="ghost"
@@ -477,10 +758,17 @@ const Settings = () => {
                   </div>
                   {security.newPassword && (
                     <div className="space-y-1">
-                      <Progress value={passwordStrength} className="h-2" />
-                      <p className={`text-xs ${passwordStrength < 50 ? "text-destructive" : passwordStrength < 75 ? "text-warning" : "text-success"}`}>
-                        Password strength: {passwordStrength < 50 ? "Weak" : passwordStrength < 75 ? "Medium" : "Strong"}
-                      </p>
+                      <div className="flex items-center justify-between text-xs">
+                        <span>Password Strength</span>
+                        <span className={`font-medium ${
+                          passwordStrength <= 25 ? 'text-destructive' :
+                          passwordStrength <= 50 ? 'text-warning' :
+                          passwordStrength <= 75 ? 'text-info' : 'text-success'
+                        }`}>
+                          {getPasswordStrengthLabel().label}
+                        </span>
+                      </div>
+                      <Progress value={passwordStrength} className={`h-2 ${getPasswordStrengthLabel().color}`} />
                     </div>
                   )}
                 </div>
@@ -492,6 +780,7 @@ const Settings = () => {
                       type={showPasswords.confirm ? "text" : "password"}
                       value={security.confirmPassword}
                       onChange={(e) => setSecurity({ ...security, confirmPassword: e.target.value })}
+                      placeholder="Confirm new password"
                     />
                     <Button
                       variant="ghost"
@@ -503,17 +792,19 @@ const Settings = () => {
                     </Button>
                   </div>
                   {security.confirmPassword && security.newPassword !== security.confirmPassword && (
-                    <p className="text-xs text-destructive">Passwords do not match</p>
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> Passwords do not match
+                    </p>
                   )}
-                  {security.confirmPassword && security.newPassword === security.confirmPassword && (
-                    <p className="flex items-center gap-1 text-xs text-success">
-                      <Check className="h-3 w-3" /> Passwords match
+                  {security.confirmPassword && security.newPassword === security.confirmPassword && security.confirmPassword.length > 0 && (
+                    <p className="text-xs text-success flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" /> Passwords match
                     </p>
                   )}
                 </div>
-                <Button
-                  onClick={handleUpdatePassword}
-                  disabled={isSecuritySaving || !security.currentPassword || !security.newPassword || !security.confirmPassword}
+                <Button 
+                  onClick={handleUpdatePassword} 
+                  disabled={isSecuritySaving || !security.currentPassword || !security.newPassword || security.newPassword !== security.confirmPassword}
                   className="gap-2"
                 >
                   {isSecuritySaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
@@ -524,19 +815,23 @@ const Settings = () => {
 
             {/* Two-Factor Authentication */}
             <div className="rounded-xl bg-card p-6 shadow-card">
-              <h3 className="mb-4 font-display text-lg font-semibold">Two-Factor Authentication</h3>
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <p className="font-medium">Enable 2FA</p>
-                  <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="font-display text-lg font-semibold">Two-Factor Authentication</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Add an extra layer of security to your account
+                  </p>
                 </div>
                 <Switch checked={twoFactorEnabled} onCheckedChange={handleToggle2FA} />
               </div>
               {twoFactorEnabled && (
-                <div className="mt-4 rounded-lg bg-success/10 p-4">
-                  <p className="flex items-center gap-2 text-sm text-success">
-                    <Check className="h-4 w-4" />
-                    Two-factor authentication is enabled
+                <div className="mt-4 rounded-lg bg-success/10 border border-success/20 p-4">
+                  <div className="flex items-center gap-2 text-success">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-medium">2FA is Active</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Your account is protected with two-factor authentication.
                   </p>
                 </div>
               )}
@@ -544,20 +839,51 @@ const Settings = () => {
 
             {/* Active Sessions */}
             <div className="rounded-xl bg-card p-6 shadow-card">
-              <h3 className="mb-4 font-display text-lg font-semibold">Active Sessions</h3>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-lg font-semibold">Active Sessions</h3>
+                  <p className="text-sm text-muted-foreground">Manage your active login sessions</p>
+                </div>
+                {sessions.length > 1 && (
+                  <Button variant="outline" size="sm" onClick={handleRevokeAllSessions} className="gap-1.5">
+                    <LogOut className="h-3.5 w-3.5" />
+                    Revoke All Others
+                  </Button>
+                )}
+              </div>
               <div className="space-y-3">
                 {sessions.map((session) => (
-                  <div key={session.id} className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                      <p className="font-medium">{session.device}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {session.location} • {session.lastActive}
-                      </p>
+                  <div
+                    key={session.id}
+                    className={`flex items-center justify-between rounded-lg border p-4 ${
+                      session.current ? 'border-primary/30 bg-primary/5' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {session.icon === 'phone' ? (
+                        <Smartphone className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <Laptop className="h-5 w-5 text-muted-foreground" />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{session.device}</p>
+                          {session.current && (
+                            <Badge variant="default" className="text-[10px] px-1.5 py-0">Current</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {session.location} • {session.lastActive}
+                        </p>
+                      </div>
                     </div>
-                    {session.current ? (
-                      <span className="text-sm text-success">Current session</span>
-                    ) : (
-                      <Button variant="ghost" size="sm" onClick={() => handleRevokeSession(session.id)} className="text-destructive hover:text-destructive">
+                    {!session.current && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRevokeSession(session.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
                         Revoke
                       </Button>
                     )}
@@ -587,6 +913,8 @@ const Settings = () => {
                   id="address"
                   value={hospital.address}
                   onChange={(e) => setHospital({ ...hospital, address: e.target.value })}
+                  rows={2}
+                  className="resize-none"
                 />
               </div>
               <div className="space-y-2">
@@ -649,124 +977,225 @@ const Settings = () => {
         {/* System Settings */}
         <TabsContent value="system">
           <div className="animate-fade-in space-y-6">
-            {/* Display Settings */}
+            {/* Appearance */}
             <div className="rounded-xl bg-card p-6 shadow-card">
-              <h3 className="mb-4 font-display text-lg font-semibold">Display Settings</h3>
+              <h3 className="mb-4 font-display text-lg font-semibold">Appearance</h3>
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <Label>Theme</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {themeOptions.map((theme) => {
+                      const Icon = theme.icon;
+                      return (
+                        <button
+                          key={theme.value}
+                          onClick={() => handleThemeChange(theme.value)}
+                          className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all hover:bg-muted/50 ${
+                            systemSettings.theme === theme.value
+                              ? 'border-primary bg-primary/5'
+                              : 'border-muted'
+                          }`}
+                        >
+                          <Icon className={`h-6 w-6 ${systemSettings.theme === theme.value ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <span className="font-medium text-sm">{theme.label}</span>
+                          <span className="text-xs text-muted-foreground">{theme.description}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Regional Settings */}
+            <div className="rounded-xl bg-card p-6 shadow-card">
+              <h3 className="mb-4 font-display text-lg font-semibold">Regional Settings</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <Select value={systemSettings.theme} onValueChange={(v) => setSystemSettings({ ...systemSettings, theme: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">☀️ Light</SelectItem>
-                      <SelectItem value="dark">🌙 Dark</SelectItem>
-                      <SelectItem value="system">💻 System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Language</Label>
-                  <Select value={systemSettings.language} onValueChange={(v) => setSystemSettings({ ...systemSettings, language: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">🇺🇸 English</SelectItem>
-                      <SelectItem value="es">🇪🇸 Spanish</SelectItem>
-                      <SelectItem value="fr">🇫🇷 French</SelectItem>
-                      <SelectItem value="de">🇩🇪 German</SelectItem>
-                      <SelectItem value="zh">🇨🇳 Chinese</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Date Format</Label>
-                  <Select value={systemSettings.dateFormat} onValueChange={(v) => setSystemSettings({ ...systemSettings, dateFormat: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mdy">MM/DD/YYYY</SelectItem>
-                      <SelectItem value="dmy">DD/MM/YYYY</SelectItem>
-                      <SelectItem value="ymd">YYYY-MM-DD</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Time Zone</Label>
-                  <Select value={systemSettings.timeZone} onValueChange={(v) => setSystemSettings({ ...systemSettings, timeZone: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="est">Eastern Time (EST)</SelectItem>
-                      <SelectItem value="cst">Central Time (CST)</SelectItem>
-                      <SelectItem value="mst">Mountain Time (MST)</SelectItem>
-                      <SelectItem value="pst">Pacific Time (PST)</SelectItem>
-                      <SelectItem value="utc">UTC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Select 
-                    value={systemSettings.currency} 
+                  <Label className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" /> Language
+                  </Label>
+                  <Select
+                    value={systemSettings.language}
                     onValueChange={(v) => {
-                      setSystemSettings({ ...systemSettings, currency: v });
+                      setSystemSettings({ ...systemSettings, language: v });
+                      const lang = languageOptions.find(l => l.value === v);
                       toast({
-                        title: "Currency Updated",
-                        description: `Currency has been changed to ${getCurrencyLabel(v)}.`,
+                        title: "Language Changed",
+                        description: `Language set to ${lang?.label}.`,
                       });
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select currency">
-                        {getCurrencyLabel(systemSettings.currency)}
-                      </SelectValue>
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border shadow-lg z-50">
-                      <SelectItem value="usd">💵 USD - US Dollar ($)</SelectItem>
-                      <SelectItem value="eur">💶 EUR - Euro (€)</SelectItem>
-                      <SelectItem value="gbp">💷 GBP - British Pound (£)</SelectItem>
-                      <SelectItem value="inr">🇮🇳 INR - Indian Rupee (₹)</SelectItem>
-                      <SelectItem value="jpy">🇯🇵 JPY - Japanese Yen (¥)</SelectItem>
-                      <SelectItem value="cad">🇨🇦 CAD - Canadian Dollar (C$)</SelectItem>
-                      <SelectItem value="aud">🇦🇺 AUD - Australian Dollar (A$)</SelectItem>
-                      <SelectItem value="pkr">🇵🇰 PKR - Pakistani Rupee (Rs)</SelectItem>
+                      {languageOptions.map((lang) => (
+                        <SelectItem key={lang.value} value={lang.value}>
+                          {lang.flag} {lang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" /> Date Format
+                  </Label>
+                  <Select
+                    value={systemSettings.dateFormat}
+                    onValueChange={(v) => {
+                      setSystemSettings({ ...systemSettings, dateFormat: v });
+                      const format = dateFormatOptions.find(f => f.value === v);
+                      toast({
+                        title: "Date Format Changed",
+                        description: `Example: ${format?.example}`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border shadow-lg z-50">
+                      {dateFormatOptions.map((format) => (
+                        <SelectItem key={format.value} value={format.value}>
+                          <div className="flex justify-between items-center w-full gap-4">
+                            <span>{format.label}</span>
+                            <span className="text-xs text-muted-foreground">{format.example}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" /> Time Zone
+                  </Label>
+                  <Select
+                    value={systemSettings.timeZone}
+                    onValueChange={(v) => {
+                      setSystemSettings({ ...systemSettings, timeZone: v });
+                      const tz = timezoneOptions.find(t => t.value === v);
+                      toast({
+                        title: "Time Zone Changed",
+                        description: `Set to ${tz?.label} (${tz?.offset}).`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border shadow-lg z-50 max-h-[300px]">
+                      {timezoneOptions.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          <div className="flex justify-between items-center w-full gap-4">
+                            <span>{tz.label}</span>
+                            <span className="text-xs text-muted-foreground">{tz.offset}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" /> Currency
+                  </Label>
+                  <Select
+                    value={systemSettings.currency}
+                    onValueChange={(v) => {
+                      setSystemSettings({ ...systemSettings, currency: v });
+                      const curr = currencyOptions.find(c => c.value === v);
+                      toast({
+                        title: "Currency Changed",
+                        description: `Currency set to ${curr?.label} (${curr?.symbol}).`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border shadow-lg z-50 max-h-[300px]">
+                      {currencyOptions.map((curr) => (
+                        <SelectItem key={curr.value} value={curr.value}>
+                          {curr.flag} {curr.label} ({curr.symbol})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {/* Preview */}
+              <div className="mt-6 rounded-lg bg-muted/50 p-4">
+                <h4 className="text-sm font-medium mb-3">Preview</h4>
+                <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Date:</span>
+                    <span className="ml-2 font-medium">{getFormattedDate()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Time:</span>
+                    <span className="ml-2 font-medium">{getFormattedTime()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Currency:</span>
+                    <span className="ml-2 font-medium">{getCurrencySymbol()}1,234.56</span>
+                  </div>
+                </div>
+              </div>
+
               <Button onClick={handleSaveSystem} disabled={isSystemSaving} className="mt-6 gap-2">
                 {isSystemSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {isSystemSaving ? "Saving..." : "Save Settings"}
               </Button>
             </div>
 
-            {/* System Toggles */}
+            {/* System Options */}
             <div className="rounded-xl bg-card p-6 shadow-card">
               <h3 className="mb-4 font-display text-lg font-semibold">System Options</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div>
-                    <p className="font-medium">Auto Backup</p>
-                    <p className="text-sm text-muted-foreground">Automatically backup data daily</p>
+                  <div className="flex items-center gap-3">
+                    <HardDrive className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Auto Backup</p>
+                      <p className="text-sm text-muted-foreground">Automatically backup data daily at midnight</p>
+                    </div>
                   </div>
                   <Switch
                     checked={systemSettings.autoBackup}
-                    onCheckedChange={(v) => setSystemSettings({ ...systemSettings, autoBackup: v })}
+                    onCheckedChange={(v) => {
+                      setSystemSettings({ ...systemSettings, autoBackup: v });
+                      toast({
+                        title: v ? "Auto Backup Enabled" : "Auto Backup Disabled",
+                        description: v ? "Your data will be backed up daily." : "Automatic backups have been turned off.",
+                      });
+                    }}
                   />
                 </div>
-                <div className="flex items-center justify-between rounded-lg border border-destructive/20 p-4">
-                  <div>
-                    <p className="font-medium text-destructive">Maintenance Mode</p>
-                    <p className="text-sm text-muted-foreground">Disable access for regular users</p>
+                <div className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <div>
+                      <p className="font-medium text-destructive">Maintenance Mode</p>
+                      <p className="text-sm text-muted-foreground">Disable access for regular users during maintenance</p>
+                    </div>
                   </div>
                   <Switch
                     checked={systemSettings.maintenanceMode}
-                    onCheckedChange={(v) => setSystemSettings({ ...systemSettings, maintenanceMode: v })}
+                    onCheckedChange={(v) => {
+                      setSystemSettings({ ...systemSettings, maintenanceMode: v });
+                      toast({
+                        title: v ? "Maintenance Mode Enabled" : "Maintenance Mode Disabled",
+                        description: v ? "Regular users cannot access the system." : "System is now accessible to all users.",
+                        variant: v ? "destructive" : "default",
+                      });
+                    }}
                   />
                 </div>
               </div>
@@ -775,15 +1204,55 @@ const Settings = () => {
             {/* Data Management */}
             <div className="rounded-xl bg-card p-6 shadow-card">
               <h3 className="mb-4 font-display text-lg font-semibold">Data Management</h3>
-              <div className="flex flex-wrap gap-4">
-                <Button variant="outline" className="gap-2" onClick={handleExportData}>
-                  <Download className="h-4 w-4" />
-                  Export All Data
-                </Button>
+              <p className="text-sm text-muted-foreground mb-4">
+                Export your settings and data in various formats for backup or migration purposes.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Export Data
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 bg-popover border shadow-lg z-50">
+                    <DropdownMenuItem onClick={handleExportCSV} className="gap-2 cursor-pointer">
+                      <FileText className="h-4 w-4" />
+                      <div>
+                        <p className="font-medium">CSV Format</p>
+                        <p className="text-xs text-muted-foreground">Spreadsheet compatible</p>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportJSON} className="gap-2 cursor-pointer">
+                      <FileJson className="h-4 w-4" />
+                      <div>
+                        <p className="font-medium">JSON Format</p>
+                        <p className="text-xs text-muted-foreground">Developer friendly</p>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleDownloadHTML} className="gap-2 cursor-pointer">
+                      <FileText className="h-4 w-4" />
+                      <div>
+                        <p className="font-medium">HTML Report</p>
+                        <p className="text-xs text-muted-foreground">Professional document</p>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPDF} className="gap-2 cursor-pointer">
+                      <Printer className="h-4 w-4" />
+                      <div>
+                        <p className="font-medium">Print / PDF</p>
+                        <p className="text-xs text-muted-foreground">Open print dialog</p>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <Button variant="outline" className="gap-2" onClick={handleClearCache}>
                   <RefreshCw className="h-4 w-4" />
                   Clear Cache
                 </Button>
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" className="gap-2">
@@ -793,23 +1262,42 @@ const Settings = () => {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        Are you absolutely sure?
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete all hospital data including patients, appointments, and billing records.
+                        This action cannot be undone. This will permanently delete all hospital data including:
+                        <ul className="mt-2 ml-4 list-disc space-y-1">
+                          <li>Patient records and medical history</li>
+                          <li>Appointment schedules</li>
+                          <li>Billing and financial records</li>
+                          <li>Laboratory test results</li>
+                          <li>Pharmacy inventory</li>
+                        </ul>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Delete Everything
+                      <AlertDialogAction
+                        onClick={handleDeleteAllData}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Yes, Delete Everything
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
-              <p className="mt-4 text-sm text-muted-foreground">
-                Export your data in CSV format for backup or migration. Clearing cache may improve performance.
-              </p>
+
+              <div className="mt-6 rounded-lg bg-muted/50 p-4">
+                <h4 className="text-sm font-medium mb-2">Storage Usage</h4>
+                <Progress value={45} className="h-2 mb-2" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>4.5 GB used</span>
+                  <span>10 GB total</span>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>
